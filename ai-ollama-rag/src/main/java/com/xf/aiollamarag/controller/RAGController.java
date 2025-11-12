@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 
 import java.io.File;
 import java.io.IOException;
@@ -82,7 +84,7 @@ public class RAGController {
             }
         }
         log.info("上传知识库完成 {}", ragTag);
-        return RetObj.success();
+        return "success";
     }
 
     /**
@@ -94,7 +96,7 @@ public class RAGController {
      * @return
      */
     @RequestMapping(value = "analyze_git_repository", method = RequestMethod.POST)
-    public RetObj<String> analyzeGitRepository(@RequestParam String repoUrl, @RequestParam String userName, @RequestParam String token) throws Exception {
+    public String analyzeGitRepository(@RequestParam String repoUrl, @RequestParam String userName, @RequestParam String token) throws Exception {
         String localPath = "./git-cloned-repo";
         String repoProjectName = extractProjectName(repoUrl);
         log.info("克隆路径：{}", new File(localPath).getAbsolutePath());
@@ -146,7 +148,7 @@ public class RAGController {
         }
         git.close();
         log.info("遍历解析路径，上传完成:{}", repoUrl);
-        return RetObj.success();
+        return "上传成功";
     }
 
     private String extractProjectName(String repoUrl) {

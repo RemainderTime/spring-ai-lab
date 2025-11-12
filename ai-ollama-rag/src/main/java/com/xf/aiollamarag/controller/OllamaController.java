@@ -34,10 +34,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/ai/ollama")
 public class OllamaController {
-
     @Resource
     private OllamaChatModel ollamaChatModel;
-
     @Resource
     private PgVectorStore pgVectorStore;
 
@@ -47,7 +45,7 @@ public class OllamaController {
      * @param message
      * @return
      */
-    @RequestMapping(value = "generate", method = RequestMethod.GET)
+    @RequestMapping(value = "/generate", method = RequestMethod.GET)
     public ChatResponse generate(@RequestParam("model") String model, @RequestParam("message") String message) {
         return ollamaChatModel.call(new Prompt(message, OllamaOptions.builder()
                 .model(model)
@@ -60,7 +58,7 @@ public class OllamaController {
      * @param message
      * @return
      */
-    @RequestMapping(value = "generate_stream", method = RequestMethod.GET)
+    @RequestMapping(value = "/generate_stream", method = RequestMethod.GET)
     public Flux<ChatResponse> generateStream(@RequestParam("model") String model, @RequestParam("message") String message) {
         return ollamaChatModel.stream(new Prompt(message, OllamaOptions.builder()
                 .model(model)
@@ -74,7 +72,7 @@ public class OllamaController {
      * @param message
      * @return
      */
-    @RequestMapping(value = "generate_stream_rag", method = RequestMethod.GET)
+    @RequestMapping(value = "/generate_stream_rag", method = RequestMethod.GET)
     public Flux<ChatResponse> generateStreamRag(@RequestParam("model") String model, @RequestParam("ragTag") String ragTag, @RequestParam("message") String message) {
         String SYSTEM_PROMPT = """
                 Use the information from the DOCUMENTS section to provide accurate answers but act as if you knew this information innately.
