@@ -3,39 +3,23 @@ server:
 spring:
   application:
     name: ai-ollama-rag
-  datasource:
-    pgvector:
-      driver-class-name: org.postgresql.Driver
-      username: postgres
-      password: postgres
-      url: jdbc:postgresql://117.72.35.70:5432/postgres
-      type: com.zaxxer.hikari.HikariDataSource
-      # hikari?????
-      hikari:
-        #????
-        pool-name: HikariCP
-        #???????
-        minimum-idle: 5
-        # ?????????????10??
-        idle-timeout: 600000
-        # ????????????10
-        maximum-pool-size: 10
-        # ?????????????????????,????true
-        auto-commit: true
-        # ??????????????????0???????????30??
-        max-lifetime: 1800000
-        # ?????????,??30?
-        connection-timeout: 30000
-        # ????query
-        connection-test-query: SELECT 1
-  ai:
-    ollama:
-      base-url: http://127.0.0.1:11434
-      chat:
-        options:
-          model: deepseek-r1:1.5b
-          temperature: 0.7
-      embedding:
-        options:
-          num-batch: 512
-        model: nomic-embed-text
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PWD:nacos}
+        file-extension: yaml
+        namespace: b0486ef8-e9ac-4c88-881f-8eef86f122a5
+        group: DEFAULT_GROUP
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PWD:nacos}
+        namespace: b0486ef8-e9ac-4c88-881f-8eef86f122a5
+  config:
+    import:
+      - nacos:${spring.application.name}-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
+      - nacos:redis-common.yaml

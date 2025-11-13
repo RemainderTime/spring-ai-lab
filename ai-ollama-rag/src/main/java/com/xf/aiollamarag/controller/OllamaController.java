@@ -66,6 +66,23 @@ public class OllamaController {
     }
 
     /**
+     *  ollama deepseek-r1:1.5b 带rag的直接应答
+     * @param model
+     * @param ragTag
+     * @param message
+     * @return
+     */
+    @RequestMapping(value = "/generateCallRag", method = RequestMethod.GET)
+    public ChatResponse generateCallRag(@RequestParam("model") String model, @RequestParam("ragTag") String ragTag, @RequestParam("message") String message) {
+
+        return ollamaChatModel.call(new Prompt(
+                this.createSystemMessage(message, ragTag),
+                OllamaOptions.builder()
+                        .model(model)
+                        .build()));
+    }
+
+    /**
      *  ollama deepseek-r1:1.5b 带rag的流式应答
      * @param model
      * @param ragTag
@@ -74,6 +91,16 @@ public class OllamaController {
      */
     @RequestMapping(value = "/generate_stream_rag", method = RequestMethod.GET)
     public Flux<ChatResponse> generateStreamRag(@RequestParam("model") String model, @RequestParam("ragTag") String ragTag, @RequestParam("message") String message) {
+
+
+        return ollamaChatModel.stream(new Prompt(
+                this.createSystemMessage(message, ragTag),
+                OllamaOptions.builder()
+                        .model(model)
+                        .build()));
+    }
+
+    private Message createSystemMessage(String message, String ragTag) {
         String SYSTEM_PROMPT = """
                 Use the information from the DOCUMENTS section to provide accurate answers but act as if you knew this information innately.
                 If unsure, simply state that you don't know.
@@ -84,7 +111,7 @@ public class OllamaController {
         SearchRequest request = SearchRequest.builder()
                 .query(message)
                 .topK(5)
-                .filterExpression("knowledge ==" + ragTag)
+                .filterExpression("knowledge == '" + ragTag + "'")
                 .build();
 
         List<Document> documents = pgVectorStore.similaritySearch(request);
@@ -96,11 +123,6 @@ public class OllamaController {
         ArrayList<Message> messages = new ArrayList<>();
         messages.add(new UserMessage(message));
         messages.add(ragMessage);
-
-        return ollamaChatModel.stream(new Prompt(
-                messages,
-                OllamaOptions.builder()
-                        .model(model)
-                        .build()));
+        return ragMessage;
     }
 }
