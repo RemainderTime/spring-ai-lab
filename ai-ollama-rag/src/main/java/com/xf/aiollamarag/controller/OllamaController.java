@@ -1,6 +1,8 @@
 package com.xf.aiollamarag.controller;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -12,15 +14,15 @@ import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.ai.ollama.api.OllamaOptions;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -58,12 +60,25 @@ public class OllamaController {
      * @param message
      * @return
      */
-    @RequestMapping(value = "/generate_stream", method = RequestMethod.GET)
-    public Flux<ChatResponse> generateStream(@RequestParam("model") String model, @RequestParam("message") String message) {
-        return ollamaChatModel.stream(new Prompt(message, OllamaOptions.builder()
-                .model(model)
-                .build()));
+    @GetMapping(value = "/generate_stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> generateStream(
+            @RequestParam String model,
+            @RequestParam String message) {
+
+        return ollamaChatModel.stream(
+                        new Prompt(message, OllamaOptions.builder().model(model).build())
+                )
+                .map(chatResponse -> {
+                    String text = chatResponse.getResults().stream()
+                            .map(r -> r.getOutput().getText())
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.joining());
+                    return ServerSentEvent.<String>builder()
+                            .data(text)
+                            .build();
+                });
     }
+
 
     /**
      *  ollama deepseek-r1:1.5b 带rag的直接应答
@@ -72,7 +87,7 @@ public class OllamaController {
      * @param message
      * @return
      */
-    @RequestMapping(value = "/generateCallRag", method = RequestMethod.GET)
+    @RequestMapping(value = "/generateCallRag", method = RequestMethod.GET, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ChatResponse generateCallRag(@RequestParam("model") String model, @RequestParam("ragTag") String ragTag, @RequestParam("message") String message) {
 
         return ollamaChatModel.call(new Prompt(
