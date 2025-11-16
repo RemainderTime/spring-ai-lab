@@ -1,8 +1,5 @@
 package com.xf.aiollamarag.controller;
 
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -18,11 +15,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -69,15 +64,25 @@ public class OllamaController {
                         new Prompt(message, OllamaOptions.builder().model(model).build())
                 )
                 .map(chatResponse -> {
-                    String text = chatResponse.getResults().stream()
+                    String text = chatResponse.getResults()
+                            .stream()
                             .map(r -> r.getOutput().getText())
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.joining());
+                            .findFirst()
+                            .orElse("");
+
                     return ServerSentEvent.<String>builder()
                             .data(text)
                             .build();
-                });
+                })
+                .concatWith(Flux.just(
+                        ServerSentEvent.<String>builder()
+                                .data("[DONE]")
+                                .build()
+                ))
+                .doOnError(Throwable::printStackTrace);
     }
+
+
 
 
     /**
@@ -105,14 +110,30 @@ public class OllamaController {
      * @return
      */
     @RequestMapping(value = "/generate_stream_rag", method = RequestMethod.GET)
-    public Flux<ChatResponse> generateStreamRag(@RequestParam("model") String model, @RequestParam("ragTag") String ragTag, @RequestParam("message") String message) {
+    public Flux<ServerSentEvent<String>> generateStreamRag(@RequestParam("model") String model, @RequestParam("ragTag") String ragTag, @RequestParam("message") String message) {
+        return ollamaChatModel.stream(
+                new Prompt(
+                        this.createSystemMessage(message, ragTag),
+                        OllamaOptions.builder()
+                                .model(model)
+                                .build())
+                ).map(chatResponse -> {
+                    String text = chatResponse.getResults()
+                            .stream()
+                            .map(r -> r.getOutput().getText())
+                            .findFirst()
+                            .orElse("");
 
-
-        return ollamaChatModel.stream(new Prompt(
-                this.createSystemMessage(message, ragTag),
-                OllamaOptions.builder()
-                        .model(model)
-                        .build()));
+                    return ServerSentEvent.<String>builder()
+                            .data(text)
+                            .build();
+                })
+                .concatWith(Flux.just(
+                        ServerSentEvent.<String>builder()
+                                .data("[DONE]")
+                                .build()
+                ))
+                .doOnError(Throwable::printStackTrace);
     }
 
     private Message createSystemMessage(String message, String ragTag) {

@@ -5,50 +5,55 @@
     <title>AI 聊天（SSE 流式）</title>
     <script src="https://unpkg.com/vue@3.3.4/dist/vue.global.prod.js"></script>
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f2f3f5; margin:0; padding:0; }
-        .chat-container { max-width: 800px; margin: 50px auto; display:flex; flex-direction:column; height:80vh; border-radius:12px; overflow:hidden; background-color:#fff; box-shadow:0 8px 20px rgba(0,0,0,0.1);}
-        .chat-header { padding:16px; font-size:20px; font-weight:600; background-color:#fff; border-bottom:1px solid #e5e5e5; display:flex; justify-content:space-between; align-items:center; }
-        .chat-body { flex:1; padding:20px; display:flex; flex-direction:column; gap:12px; overflow-y:auto; background-color:#f7f7f8;}
-        .message { max-width:75%; padding:12px 16px; border-radius:20px; line-height:1.5; word-wrap:break-word; white-space:pre-wrap; font-size:15px; box-shadow:0 1px 2px rgba(0,0,0,0.05); transition:background-color 0.2s;}
-        .message.user { background-color:#0066ff; color:#fff; align-self:flex-end; border-bottom-right-radius:4px;}
-        .message.ai { background-color:#f5f5f5; color:#333; align-self:flex-start; border-bottom-left-radius:4px;}
-        .message.ai .chunk { display:inline-block; background: #e0e7ff; padding:2px 4px; margin-right:1px; border-radius:4px; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-        .chat-footer { display:flex; gap:10px; padding:15px; background-color:#fff; border-top:1px solid #e5e5e5;}
-        .chat-footer select, .chat-footer input { padding:8px 12px; border-radius:8px; border:1px solid #d1d5db; font-size:14px;}
-        .chat-footer input { flex:1;}
-        .chat-footer button { padding:8px 18px; border:none; border-radius:8px; background-color:#0066ff; color:#fff; cursor:pointer; font-weight:500; transition:0.2s;}
-        .chat-footer button:hover { background-color:#0050cc;}
-        .toggle-btn { padding:4px 10px; border-radius:6px; border:1px solid #0066ff; background:#fff; color:#0066ff; cursor:pointer; font-size:14px; transition:0.2s;}
+        body { font-family: Arial, sans-serif; background:#f2f3f5; margin:0; padding:0;}
+        .chat-container { max-width:800px; margin:40px auto; height:85vh; background:#fff;
+            border-radius:12px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 6px 15px rgba(0,0,0,.1);}
+        .chat-header { padding:16px; font-size:20px; font-weight:bold; border-bottom:1px solid #e5e5e5; display:flex; justify-content:space-between; align-items:center;}
+        .toggle-btn { border:1px solid #0066ff; background:#fff; color:#0066ff; padding:4px 12px; border-radius:6px; cursor:pointer;}
         .toggle-btn.active { background:#0066ff; color:#fff;}
+        .chat-body { flex:1; padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; background:#f7f7f8;}
+        .message { max-width:75%; padding:10px 14px; border-radius:18px; font-size:15px; white-space:pre-wrap; line-height:1.5;}
+        .user { background:#0076ff; color:#fff; align-self:flex-end; border-bottom-right-radius:4px;}
+        .ai { background:#f5f5f5; color:#000; align-self:flex-start; border-bottom-left-radius:4px;}
+        .ai.loading::after { content:'▊'; animation:blink .8s infinite;}
+        @keyframes blink { 0%, 49% {opacity:1;} 50%, 100% {opacity:0;} }
+        .error-msg { background:#ffe6e6; color:#d00; padding:8px; border-radius:6px; font-size:13px; margin-top:8px;}
+        .chat-footer { padding:16px; display:flex; gap:10px; border-top:1px solid #e5e5e5;}
+        .chat-footer input, .chat-footer select { padding:8px; border-radius:6px; border:1px solid #ccc; font-size:14px;}
+        .chat-footer input { flex:1;}
+        .chat-footer button { padding:8px 18px; background:#0066ff; border:none; border-radius:6px; color:#fff; cursor:pointer;}
+        .chat-footer button:disabled { background:#ccc; cursor:not-allowed;}
     </style>
 </head>
 <body>
 
 <div id="app" class="chat-container">
     <div class="chat-header">
-        <span>AI 助手</span>
+        AI 助手
         <button class="toggle-btn" :class="{active: useRag}" @click="useRag = !useRag">
             {{ useRag ? '带 RAG 模式' : '不带 RAG 模式' }}
         </button>
     </div>
+
     <div class="chat-body" ref="chatBody">
-        <div v-for="(msg, idx) in chatHistory" :key="idx" :class="['message', msg.role]">
-            <template v-if="msg.role==='ai'">
-                <span v-for="(chunk, index) in msg.chunks" :key="index" class="chunk">{{ chunk }}</span>
+        <div v-for="(msg, idx) in chatHistory" :key="idx" :class="['message', msg.role, {loading: msg.loading}]">
+            <template v-if="msg.role === 'ai'">
+                <span class="ai-content"></span>
             </template>
             <template v-else>{{ msg.content }}</template>
+            <div v-if="msg.error" class="error-msg">{{ msg.error }}</div>
         </div>
     </div>
+
     <div class="chat-footer">
-        <select v-model="selectedModel">
+        <select v-model="selectedModel" :disabled="isLoading">
             <option v-for="model in models" :value="model">{{ model }}</option>
         </select>
-        <select v-if="useRag" v-model="selectedRagTag">
+        <select v-if="useRag" v-model="selectedRagTag" :disabled="isLoading">
             <option v-for="tag in ragTags" :value="tag">{{ tag }}</option>
         </select>
-        <input type="text" v-model="message" @keyup.enter="sendMessage" placeholder="输入消息">
-        <button @click="sendMessage">发送</button>
+        <input type="text" placeholder="输入消息…" v-model="message" @keyup.enter="sendMessage" :disabled="isLoading">
+        <button @click="sendMessage" :disabled="isLoading">{{ isLoading ? '发送中...' : '发送' }}</button>
     </div>
 </div>
 
@@ -59,61 +64,91 @@
         data() {
             return {
                 message: '',
-                useRag: true,
                 selectedModel: 'deepseek-r1:1.5b',
                 selectedRagTag: 'rag',
+                useRag: false,
+                isLoading: false,
                 models: ['deepseek-r1:1.5b', 'deepseek-r2:3b', 'mistral'],
                 ragTags: ['rag', 'finance', 'legal'],
                 chatHistory: []
             };
         },
         methods: {
-            sendMessage() {
-                if (!this.message.trim()) return;
+            async sendMessage() {
+                if (!this.message.trim() || this.isLoading) return;
 
-                // 用户消息
+                // 存用户消息
                 this.chatHistory.push({ role: 'user', content: this.message });
+                await nextTick();
+                this.scrollBottom();
 
-                // AI 占位消息
-                const aiMessage = { role: 'ai', chunks: [] };
+                // 创建 AI 消息占位
+                const aiMessage = {
+                    role: 'ai',
+                    content: '',
+                    loading: true,
+                    error: null
+                };
                 this.chatHistory.push(aiMessage);
 
-                const msgToSend = this.message;
+                const msg = this.message;
                 this.message = '';
+                this.isLoading = true;
 
-                const apiUrl = this.useRag ?
-                    'http://localhost:10001/ai/ollama/generate_stream_rag' :
-                    'http://localhost:10001/ai/ollama/generate_stream';
+                // 等待 DOM 更新后获取元素
+                await nextTick();
+                const aiElement = this.$refs.chatBody.querySelector('.message.ai:last-child .ai-content');
 
-                const params = new URLSearchParams();
-                params.append('model', this.selectedModel);
-                params.append('message', msgToSend);
+                const api = this.useRag ?
+                    `http://localhost:10001/ai/ollama/generate_stream_rag` :
+                    `http://localhost:10001/ai/ollama/generate_stream`;
+
+                const params = new URLSearchParams({ model: this.selectedModel, message: msg });
                 if (this.useRag) params.append('ragTag', this.selectedRagTag);
 
-                // SSE 连接
-                const evtSource = new EventSource(`${apiUrl}?${params.toString()}`);
+                const evtSource = new EventSource(`${api}?${params.toString()}&t=${Date.now()}`);
 
-                evtSource.onmessage = async (event) => {
-                    const text = event.data;
-                    if (text && text.trim()) {
-                        aiMessage.chunks.push(text);
-                        await nextTick();
-                        this.scrollToBottom();
+                evtSource.onmessage = (event) => {
+                    if (!event.data) return;
+
+                    // 检查结束标记
+                    if (event.data === "[DONE]") {
+                        evtSource.close();
+                        aiMessage.loading = false;
+                        this.isLoading = false;
+                        return;
+                    }
+
+                    // ★ 核心：直接操作 DOM 实现流式显示
+                    aiMessage.content += event.data;
+                    if (aiElement) {
+                        aiElement.textContent += event.data;
+                        this.scrollBottom();
                     }
                 };
 
                 evtSource.onerror = (err) => {
-                    console.error('SSE 错误', err);
-                    aiMessage.chunks.push('请求失败或已结束');
+                    console.error("SSE 连接异常", err);
+                    console.log("ReadyState:", evtSource.readyState);
+
                     evtSource.close();
+                    aiMessage.loading = false;
+                    this.isLoading = false;
+
+                    // 如果没有收到任何内容，显示错误
+                    if (!aiMessage.content) {
+                        aiMessage.error = "连接失败，请检查后端服务或网络";
+                    }
                 };
             },
-            scrollToBottom() {
-                const container = this.$refs.chatBody;
-                container.scrollTop = container.scrollHeight;
+            scrollBottom() {
+                const body = this.$refs.chatBody;
+                if (body) {
+                    body.scrollTop = body.scrollHeight;
+                }
             }
         }
-    }).mount('#app');
+    }).mount("#app");
 </script>
 
 </body>
