@@ -67,10 +67,10 @@ public class RAGController {
             pgVectorStore.accept(documentSplitterList);
 
             // 添加知识库记录
-            List<String> elements = redisTemplate.opsForList().range("ai:arg:tags", 0, -1);
+            List<String> elements = redisTemplate.opsForList().range("ai:rag:tags", 0, -1);
             assert elements != null;
             if (!elements.contains(ragTag)) {
-                redisTemplate.opsForList().leftPush("ai:arg:tags", ragTag);
+                redisTemplate.opsForList().leftPush("ai:rag:tags", ragTag);
             }
         }
         log.info("上传知识库完成 {}", ragTag);

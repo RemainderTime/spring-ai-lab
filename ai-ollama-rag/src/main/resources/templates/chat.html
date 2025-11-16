@@ -9,20 +9,85 @@
         .chat-container { max-width:800px; margin:40px auto; height:85vh; background:#fff;
             border-radius:12px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 6px 15px rgba(0,0,0,.1);}
         .chat-header { padding:16px; font-size:20px; font-weight:bold; border-bottom:1px solid #e5e5e5; display:flex; justify-content:space-between; align-items:center;}
-        .toggle-btn { border:1px solid #0066ff; background:#fff; color:#0066ff; padding:4px 12px; border-radius:6px; cursor:pointer;}
+        .header-actions { display:flex; gap:10px; align-items:center;}
+        .toggle-btn, .upload-btn { border:1px solid #0066ff; background:#fff; color:#0066ff; padding:4px 12px; border-radius:6px; cursor:pointer; font-size:14px; transition: all 0.3s;}
+        .toggle-btn:hover, .upload-btn:hover { background:#e6f0ff;}
         .toggle-btn.active { background:#0066ff; color:#fff;}
+        .upload-btn { display:flex; align-items:center; gap:4px;}
         .chat-body { flex:1; padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; background:#f7f7f8;}
         .message { max-width:75%; padding:10px 14px; border-radius:18px; font-size:15px; white-space:pre-wrap; line-height:1.5;}
         .user { background:#0076ff; color:#fff; align-self:flex-end; border-bottom-right-radius:4px;}
         .ai { background:#f5f5f5; color:#000; align-self:flex-start; border-bottom-left-radius:4px;}
-        .ai.loading::after { content:'▊'; animation:blink .8s infinite;}
+        .ai.loading::after { content:'▊'; animation:blink .8s infinite; font-size:14px; margin-left:2px;}
         @keyframes blink { 0%, 49% {opacity:1;} 50%, 100% {opacity:0;} }
         .error-msg { background:#ffe6e6; color:#d00; padding:8px; border-radius:6px; font-size:13px; margin-top:8px;}
         .chat-footer { padding:16px; display:flex; gap:10px; border-top:1px solid #e5e5e5;}
         .chat-footer input, .chat-footer select { padding:8px; border-radius:6px; border:1px solid #ccc; font-size:14px;}
         .chat-footer input { flex:1;}
-        .chat-footer button { padding:8px 18px; background:#0066ff; border:none; border-radius:6px; color:#fff; cursor:pointer;}
+        .chat-footer select { min-width: 120px; cursor: pointer; background: #fff;}
+        .chat-footer select:focus { outline: none; border-color: #0066ff;}
+
+        /* 自定义 RAG 下拉 */
+        .rag-selector-wrapper { position: relative;}
+        .rag-selector { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; font-size: 14px; min-width: 140px; transition: all 0.2s; user-select: none;}
+        .rag-selector:hover { border-color: #0066ff; background: #f8f9fa;}
+        .rag-selector.disabled { opacity: 0.6; cursor: not-allowed; pointer-events: none;}
+        .rag-icon { font-size: 12px; opacity: 0.7;}
+        .rag-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+        .rag-arrow { font-size: 10px; color: #999; transition: transform 0.2s;}
+        .rag-selector:hover .rag-arrow { color: #0066ff;}
+        .rag-dropdown { position: absolute; bottom: calc(100% + 4px); left: 0; min-width: 180px; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; overflow: hidden;}
+        .rag-dropdown-item { padding: 10px 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; color: #333; transition: all 0.15s; position: relative;}
+        .rag-dropdown-item:hover { background: #f0f7ff;}
+        .rag-dropdown-item.active { background: #e6f0ff; color: #0066ff; font-weight: 500;}
+        .rag-dropdown-item .check-icon { margin-left: auto; color: #0066ff; font-size: 12px;}
+        .chat-footer button { padding:8px 18px; background:#0066ff; border:none; border-radius:6px; color:#fff; cursor:pointer; transition: all 0.3s;}
+        .chat-footer button:hover { background:#0052cc;}
         .chat-footer button:disabled { background:#ccc; cursor:not-allowed;}
+
+        /* 上传弹窗 */
+        .modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000;}
+        .modal-content { background:#fff; border-radius:12px; width:500px; max-width:90%; max-height:80vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.2);}
+        .modal-header { padding:20px; border-bottom:1px solid #e5e5e5; font-size:18px; font-weight:bold; display:flex; justify-content:space-between; align-items:center;}
+        .close-btn { background:none; border:none; font-size:24px; color:#999; cursor:pointer; padding:0; width:30px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:50%; transition: all 0.3s;}
+        .close-btn:hover { background:#f0f0f0; color:#333;}
+        .modal-body { padding:20px; overflow-y:auto; flex:1;}
+        .form-group { margin-bottom:20px;}
+        .form-group label { display:block; margin-bottom:8px; font-weight:500; font-size:14px; color:#333;}
+        .form-group input, .form-group select { width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; font-size:14px; box-sizing:border-box;}
+        .form-group input:focus, .form-group select:focus { outline:none; border-color:#0066ff;}
+        .tag-input-wrapper { position: relative; }
+        .tag-dropdown { position: absolute; top: calc(100% + 4px); left: 0; min-width: 180px; max-width: 300px; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; max-height: 240px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.15);}
+        .tag-dropdown-item { padding: 8px 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; font-size: 14px; color: #333;}
+        .tag-dropdown-item:first-child { border-radius: 8px 8px 0 0;}
+        .tag-dropdown-item:last-child { border-radius: 0 0 8px 8px;}
+        .tag-dropdown-item:hover, .tag-dropdown-item.active { background: #f0f7ff;}
+        .tag-dropdown-item.active { background: #e6f0ff;}
+        .tag-icon { font-size: 12px; opacity: 0.6;}
+        .tag-hint { font-size: 11px; color: #666; margin-top: 4px; padding: 4px 8px; background: #f8f9fa; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; border-left: 2px solid #0066ff;}
+        .tag-hint.existing { background: #f0f9f0; border-left-color: #28a745; color: #155724;}
+        .tag-hint strong { font-weight: 500;}
+        .hint-icon { font-size: 12px;}
+        .tag-selector { display:flex; gap:10px;}
+        .tag-selector input { flex:1;}
+        .tag-selector button { padding:10px 16px; background:#f5f5f5; border:1px solid #ccc; border-radius:6px; cursor:pointer; white-space:nowrap; transition: all 0.3s;}
+        .tag-selector button:hover { background:#e5e5e5;}
+        .tag-selector button.active { background:#0066ff; color:#fff; border-color:#0066ff;}
+        .file-upload-area { border:2px dashed #ccc; border-radius:8px; padding:30px; text-align:center; cursor:pointer; transition: all 0.3s; background:#fafafa;}
+        .file-upload-area:hover { border-color:#0066ff; background:#f0f7ff;}
+        .file-upload-area.dragging { border-color:#0066ff; background:#e6f0ff;}
+        .file-list { margin-top:15px; max-height:200px; overflow-y:auto;}
+        .file-item { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#f5f5f5; border-radius:6px; margin-bottom:8px; font-size:14px;}
+        .file-item button { background:#ff4444; color:#fff; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:12px; transition: all 0.3s;}
+        .file-item button:hover { background:#cc0000;}
+        .modal-footer { padding:20px; border-top:1px solid #e5e5e5; display:flex; gap:10px; justify-content:flex-end;}
+        .modal-footer button { padding:10px 20px; border-radius:6px; cursor:pointer; font-size:14px; border:none; transition: all 0.3s;}
+        .btn-cancel { background:#f5f5f5; color:#333;}
+        .btn-cancel:hover { background:#e5e5e5;}
+        .btn-submit { background:#0066ff; color:#fff;}
+        .btn-submit:hover { background:#0052cc;}
+        .btn-submit:disabled { background:#ccc; cursor:not-allowed;}
+        .upload-success { background:#e6ffe6; color:#006600; padding:12px; border-radius:6px; margin-bottom:15px; font-size:14px;}
     </style>
 </head>
 <body>
@@ -30,9 +95,14 @@
 <div id="app" class="chat-container">
     <div class="chat-header">
         AI 助手
-        <button class="toggle-btn" :class="{active: useRag}" @click="useRag = !useRag">
-            {{ useRag ? '带 RAG 模式' : '不带 RAG 模式' }}
-        </button>
+        <div class="header-actions">
+            <button class="upload-btn" @click="showUploadModal = true">
+                <span>📁</span> 上传知识库
+            </button>
+            <button class="toggle-btn" :class="{active: useRag}" @click="useRag = !useRag">
+                {{ useRag ? '带 RAG' : '不带 RAG' }}
+            </button>
+        </div>
     </div>
 
     <div class="chat-body" ref="chatBody">
@@ -49,11 +119,123 @@
         <select v-model="selectedModel" :disabled="isLoading">
             <option v-for="model in models" :value="model">{{ model }}</option>
         </select>
-        <select v-if="useRag" v-model="selectedRagTag" :disabled="isLoading">
-            <option v-for="tag in ragTags" :value="tag">{{ tag }}</option>
-        </select>
+
+        <!-- 自定义 RAG 标签下拉 -->
+        <div v-if="useRag" class="rag-selector-wrapper">
+            <div class="rag-selector" @click="toggleRagDropdown" :class="{disabled: isLoading}">
+                <span class="rag-icon">🏷️</span>
+                <span class="rag-label">{{ selectedRagTag }}</span>
+                <span class="rag-arrow">▼</span>
+            </div>
+            <div v-if="showRagDropdown" class="rag-dropdown" @click.stop>
+                <div
+                        v-for="(tag, idx) in ragTags"
+                        :key="tag"
+                        :class="['rag-dropdown-item', {active: selectedRagTag === tag}]"
+                        @click="selectRagTag(tag)">
+                    <span class="tag-icon">🏷️</span>
+                    {{ tag }}
+                    <span v-if="selectedRagTag === tag" class="check-icon">✓</span>
+                </div>
+            </div>
+        </div>
+
         <input type="text" placeholder="输入消息…" v-model="message" @keyup.enter="sendMessage" :disabled="isLoading">
         <button @click="sendMessage" :disabled="isLoading">{{ isLoading ? '发送中...' : '发送' }}</button>
+    </div>
+
+    <!-- 上传弹窗 -->
+    <div v-if="showUploadModal" class="modal-overlay" @click.self="closeUploadModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                上传知识库文件
+                <button class="close-btn" @click="closeUploadModal">×</button>
+            </div>
+            <div class="modal-body">
+                <div v-if="uploadSuccess" class="upload-success">
+                    ✓ {{ uploadSuccess }}
+                </div>
+
+                <div class="form-group">
+                    <label>选择或新增标签</label>
+                    <div class="tag-input-wrapper">
+                        <input
+                                ref="tagInput"
+                                v-model="tagInputValue"
+                                type="text"
+                                placeholder="输入标签名称..."
+                                @input="handleTagInput"
+                                @keydown.enter.prevent="handleTagEnter"
+                                @keydown.down.prevent="navigateDropdown(1)"
+                                @keydown.up.prevent="navigateDropdown(-1)"
+                                @keydown.escape="showTagDropdown = false"
+                                @focus="handleTagFocus"
+                                @blur="handleTagBlur"
+                                autocomplete="off">
+
+                        <!-- 下拉列表 -->
+                        <div v-if="showTagDropdown && filteredTags.length > 0" class="tag-dropdown">
+                            <div
+                                    v-for="(tag, idx) in filteredTags"
+                                    :key="tag"
+                                    :class="['tag-dropdown-item', {active: selectedDropdownIndex === idx}]"
+                                    @mousedown.prevent="selectTag(tag)"
+                                    @mouseenter="selectedDropdownIndex = idx">
+                                <span class="tag-icon">🏷️</span>
+                                {{ tag }}
+                            </div>
+                        </div>
+
+                        <!-- 提示信息 -->
+                        <div v-if="tagInputValue && !isExistingTag && !showTagDropdown" class="tag-hint">
+                            <span class="hint-icon">✨</span>
+                            按 Enter 创建 <strong>{{ tagInputValue }}</strong>
+                        </div>
+                        <div v-else-if="tagInputValue && isExistingTag && !showTagDropdown" class="tag-hint existing">
+                            <span class="hint-icon">✓</span>
+                            已有标签 <strong>{{ tagInputValue }}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>上传文件（单个文件最大 10MB）</label>
+                    <div
+                            class="file-upload-area"
+                            :class="{dragging: isDragging}"
+                            @click="$refs.fileInput.click()"
+                            @dragover.prevent="isDragging = true"
+                            @dragleave.prevent="isDragging = false"
+                            @drop.prevent="handleDrop">
+                        <div>📄 点击或拖拽文件到这里</div>
+                        <div style="font-size:12px; color:#999; margin-top:8px;">支持 PDF, TXT, DOCX 等格式，单个文件 ≤ 10MB</div>
+                    </div>
+                    <input
+                            type="file"
+                            ref="fileInput"
+                            multiple
+                            style="display:none"
+                            @change="handleFileSelect"
+                            accept=".pdf,.txt,.doc,.docx,.md">
+                </div>
+
+                <div v-if="uploadFiles.length > 0" class="file-list">
+                    <div v-for="(file, idx) in uploadFiles" :key="idx" class="file-item">
+                        <span>{{ file.name }} ({{ formatFileSize(file.size) }})</span>
+                        <button @click="removeFile(idx)">删除</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" @click="closeUploadModal">取消</button>
+                <button
+                        class="btn-submit"
+                        @click="submitUpload"
+                        :disabled="isUploading || !canUpload">
+                    {{ isUploading ? '上传中...' : '上传' }}
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -65,24 +247,80 @@
             return {
                 message: '',
                 selectedModel: 'deepseek-r1:1.5b',
-                selectedRagTag: 'rag',
+                selectedRagTag: '',  // 初始为空，由 loadRagTags 设置
                 useRag: false,
                 isLoading: false,
                 models: ['deepseek-r1:1.5b', 'deepseek-r2:3b', 'mistral'],
                 ragTags: ['rag', 'finance', 'legal'],
-                chatHistory: []
+                chatHistory: [],
+
+                // 上传相关
+                showUploadModal: false,
+                tagInputValue: '',
+                showTagDropdown: false,
+                selectedDropdownIndex: -1,
+                uploadFiles: [],
+                isDragging: false,
+                isUploading: false,
+                uploadSuccess: '',
+
+                // RAG 下拉
+                showRagDropdown: false
             };
         },
+        computed: {
+            canUpload() {
+                return this.tagInputValue.trim() && this.uploadFiles.length > 0;
+            },
+            filteredTags() {
+                if (!this.tagInputValue) {
+                    return this.ragTags;
+                }
+                const input = this.tagInputValue.toLowerCase();
+                return this.ragTags.filter(tag => tag.toLowerCase().includes(input));
+            },
+            isExistingTag() {
+                return this.ragTags.some(tag =>
+                    tag.toLowerCase() === this.tagInputValue.toLowerCase()
+                );
+            }
+        },
+        mounted() {
+            this.loadRagTags();
+
+            // 点击外部关闭下拉
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.rag-selector-wrapper')) {
+                    this.showRagDropdown = false;
+                }
+            });
+        },
         methods: {
+            async loadRagTags() {
+                try {
+                    const response = await fetch('http://localhost:10001/ai/ollama/rag/query_rag_tag_list');
+                    if (response.ok) {
+                        const tags = await response.json();
+                        if (tags && tags.length > 0) {
+                            this.ragTags = tags;
+                            // 默认选择第一个标签
+                            if (!this.selectedRagTag || !tags.includes(this.selectedRagTag)) {
+                                this.selectedRagTag = tags[0];
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('加载标签列表失败:', error);
+                }
+            },
+
             async sendMessage() {
                 if (!this.message.trim() || this.isLoading) return;
 
-                // 存用户消息
                 this.chatHistory.push({ role: 'user', content: this.message });
                 await nextTick();
                 this.scrollBottom();
 
-                // 创建 AI 消息占位
                 const aiMessage = {
                     role: 'ai',
                     content: '',
@@ -95,7 +333,6 @@
                 this.message = '';
                 this.isLoading = true;
 
-                // 等待 DOM 更新后获取元素
                 await nextTick();
                 const aiElement = this.$refs.chatBody.querySelector('.message.ai:last-child .ai-content');
 
@@ -111,7 +348,6 @@
                 evtSource.onmessage = (event) => {
                     if (!event.data) return;
 
-                    // 检查结束标记
                     if (event.data === "[DONE]") {
                         evtSource.close();
                         aiMessage.loading = false;
@@ -119,7 +355,6 @@
                         return;
                     }
 
-                    // ★ 核心：直接操作 DOM 实现流式显示
                     aiMessage.content += event.data;
                     if (aiElement) {
                         aiElement.textContent += event.data;
@@ -129,22 +364,237 @@
 
                 evtSource.onerror = (err) => {
                     console.error("SSE 连接异常", err);
-                    console.log("ReadyState:", evtSource.readyState);
-
                     evtSource.close();
                     aiMessage.loading = false;
                     this.isLoading = false;
 
-                    // 如果没有收到任何内容，显示错误
                     if (!aiMessage.content) {
                         aiMessage.error = "连接失败，请检查后端服务或网络";
                     }
                 };
             },
+
             scrollBottom() {
                 const body = this.$refs.chatBody;
                 if (body) {
                     body.scrollTop = body.scrollHeight;
+                }
+            },
+
+            // RAG 下拉相关
+            toggleRagDropdown() {
+                if (!this.isLoading) {
+                    this.showRagDropdown = !this.showRagDropdown;
+                }
+            },
+
+            selectRagTag(tag) {
+                this.selectedRagTag = tag;
+                this.showRagDropdown = false;
+            },
+
+            // 上传相关方法
+            handleTagInput() {
+                this.showTagDropdown = true;
+                this.uploadSuccess = '';
+
+                // 自动选择第一个匹配项
+                this.$nextTick(() => {
+                    if (this.filteredTags.length > 0) {
+                        this.selectedDropdownIndex = 0;
+                    } else {
+                        this.selectedDropdownIndex = -1;
+                    }
+                });
+            },
+
+            handleTagFocus() {
+                if (this.ragTags.length > 0) {
+                    this.showTagDropdown = true;
+                    // 如果有输入内容，自动选择第一个
+                    if (this.tagInputValue && this.filteredTags.length > 0) {
+                        this.selectedDropdownIndex = 0;
+                    } else {
+                        this.selectedDropdownIndex = -1;
+                    }
+                }
+            },
+
+            handleTagEnter() {
+                if (this.selectedDropdownIndex >= 0 && this.filteredTags.length > 0) {
+                    // 选择下拉列表中的标签
+                    this.selectTag(this.filteredTags[this.selectedDropdownIndex]);
+                } else if (this.tagInputValue.trim()) {
+                    // 使用当前输入的标签（可能是新标签）
+                    this.showTagDropdown = false;
+                }
+            },
+
+            navigateDropdown(direction) {
+                if (this.filteredTags.length === 0) return;
+
+                this.selectedDropdownIndex += direction;
+
+                if (this.selectedDropdownIndex < 0) {
+                    this.selectedDropdownIndex = this.filteredTags.length - 1;
+                } else if (this.selectedDropdownIndex >= this.filteredTags.length) {
+                    this.selectedDropdownIndex = 0;
+                }
+
+                // 滚动到选中项
+                this.$nextTick(() => {
+                    const dropdown = document.querySelector('.tag-dropdown');
+                    const activeItem = document.querySelector('.tag-dropdown-item.active');
+                    if (dropdown && activeItem) {
+                        const dropdownRect = dropdown.getBoundingClientRect();
+                        const activeRect = activeItem.getBoundingClientRect();
+
+                        if (activeRect.bottom > dropdownRect.bottom) {
+                            activeItem.scrollIntoView({ block: 'end', behavior: 'smooth' });
+                        } else if (activeRect.top < dropdownRect.top) {
+                            activeItem.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                        }
+                    }
+                });
+            },
+
+            selectTag(tag) {
+                this.tagInputValue = tag;
+                this.showTagDropdown = false;
+                this.selectedDropdownIndex = -1;
+                // 选择后聚焦到文件上传区域
+                this.$nextTick(() => {
+                    const fileArea = document.querySelector('.file-upload-area');
+                    if (fileArea) {
+                        fileArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                });
+            },
+
+            handleTagBlur() {
+                // 延迟关闭，以便点击事件能触发
+                setTimeout(() => {
+                    this.showTagDropdown = false;
+                    this.selectedDropdownIndex = -1;
+                }, 200);
+            },
+
+            handleFileSelect(event) {
+                const files = Array.from(event.target.files);
+                this.addFiles(files);
+            },
+
+            handleDrop(event) {
+                this.isDragging = false;
+                const files = Array.from(event.dataTransfer.files);
+                this.addFiles(files);
+            },
+
+            addFiles(files) {
+                const maxSize = 10 * 1024 * 1024; // 100MB
+                const oversizedFiles = [];
+                const validFiles = [];
+
+                files.forEach(file => {
+                    if (file.size > maxSize) {
+                        oversizedFiles.push(file.name);
+                    } else {
+                        validFiles.push(file);
+                    }
+                });
+
+                if (oversizedFiles.length > 0) {
+                    alert(`以下文件超过 10MB 限制，已被忽略：\n${oversizedFiles.join('\n')}`);
+                }
+
+                this.uploadFiles.push(...validFiles);
+                this.uploadSuccess = '';
+            },
+
+            removeFile(index) {
+                this.uploadFiles.splice(index, 1);
+            },
+
+            formatFileSize(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            },
+
+            async submitUpload() {
+                if (!this.canUpload || this.isUploading) return;
+
+                const ragTag = this.tagInputValue.trim();
+
+                // 计算总大小
+                const totalSize = this.uploadFiles.reduce((sum, file) => sum + file.size, 0);
+                const maxTotalSize = 50 * 1024 * 1024; // 50MB
+
+                if (totalSize > maxTotalSize) {
+                    alert(`文件总大小超过 50MB 限制（当前: ${this.formatFileSize(totalSize)}），请分批上传`);
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('ragTag', ragTag);
+                this.uploadFiles.forEach(file => {
+                    formData.append('file', file);
+                });
+
+                this.isUploading = true;
+                this.uploadSuccess = '';
+
+                try {
+                    const response = await fetch('http://localhost:10001/ai/ollama/rag/file/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        const result = await response.text();
+                        this.uploadSuccess = `上传成功！已添加到标签: ${ragTag}`;
+
+                        // 刷新标签列表
+                        await this.loadRagTags();
+
+                        // 清空文件列表
+                        this.uploadFiles = [];
+                        this.$refs.fileInput.value = '';
+
+                        // 清空标签输入
+                        this.tagInputValue = '';
+
+                        // 3秒后自动关闭弹窗
+                        setTimeout(() => {
+                            if (this.uploadSuccess) {
+                                this.closeUploadModal();
+                            }
+                        }, 3000);
+                    } else {
+                        const errorText = await response.text();
+                        if (errorText.includes('Maximum upload size exceeded') || errorText.includes('MaxUploadSizeExceededException')) {
+                            alert('文件大小超过限制！请检查：\n1. 单个文件不超过 10MB\n2. 总大小不超过 50MB');
+                        } else {
+                            alert('上传失败: ' + errorText);
+                        }
+                    }
+                } catch (error) {
+                    console.error('上传错误:', error);
+                    alert('上传失败: ' + error.message);
+                } finally {
+                    this.isUploading = false;
+                }
+            },
+
+            closeUploadModal() {
+                this.showUploadModal = false;
+                this.tagInputValue = '';
+                this.showTagDropdown = false;
+                this.selectedDropdownIndex = -1;
+                this.uploadFiles = [];
+                this.uploadSuccess = '';
+                if (this.$refs.fileInput) {
+                    this.$refs.fileInput.value = '';
                 }
             }
         }
