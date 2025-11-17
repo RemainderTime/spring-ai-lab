@@ -8,7 +8,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.SystemPromptTemplate;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.ollama.OllamaChatModel;
-import org.springframework.ai.ollama.api.OllamaOptions;
+import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
 import org.springframework.http.MediaType;
@@ -44,7 +44,7 @@ public class OllamaController {
      */
     @RequestMapping(value = "/generate", method = RequestMethod.GET)
     public ChatResponse generate(@RequestParam("model") String model, @RequestParam("message") String message) {
-        return ollamaChatModel.call(new Prompt(message, OllamaOptions.builder()
+        return ollamaChatModel.call(new Prompt(message, OllamaChatOptions.builder()
                 .model(model)
                 .build()));
     }
@@ -61,7 +61,7 @@ public class OllamaController {
             @RequestParam String message) {
 
         return ollamaChatModel.stream(
-                        new Prompt(message, OllamaOptions.builder().model(model).build())
+                        new Prompt(message, OllamaChatOptions.builder().model(model).build())
                 )
                 .map(chatResponse -> {
                     String text = chatResponse.getResults()
@@ -97,7 +97,7 @@ public class OllamaController {
 
         return ollamaChatModel.call(new Prompt(
                 this.createSystemMessage(message, ragTag),
-                OllamaOptions.builder()
+                OllamaChatOptions.builder()
                         .model(model)
                         .build()));
     }
@@ -114,7 +114,7 @@ public class OllamaController {
         return ollamaChatModel.stream(
                 new Prompt(
                         this.createSystemMessage(message, ragTag),
-                        OllamaOptions.builder()
+                        OllamaChatOptions.builder()
                                 .model(model)
                                 .build())
                 ).map(chatResponse -> {
