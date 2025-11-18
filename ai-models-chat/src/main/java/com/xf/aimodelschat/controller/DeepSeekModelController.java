@@ -1,11 +1,10 @@
 package com.xf.aimodelschat.controller;
 
-
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.zhipuai.ZhiPuAiChatModel;
-import org.springframework.ai.zhipuai.ZhiPuAiChatOptions;
+import org.springframework.ai.deepseek.DeepSeekChatModel;
+import org.springframework.ai.deepseek.DeepSeekChatOptions;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,32 +14,31 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
 /**
- * GLMModelController
+ * DeepSeekModelController
  *
  * @author 海言
  * @date 2025/11/18
- * @time 17:03
- * @Description GLM模型控制器(新用户赠送2千万tokens)
+ * @time 17:39
+ * @Description DeepSeek大模型控制器（无赠送额度）
  */
 @RestController
-@RequestMapping("/ai/glm")
-public class GLMModelController {
-
+@RequestMapping("/ai/deepseek")
+public class DeepSeekModelController {
 
     @Resource
-    private ZhiPuAiChatModel chatModel;
+    private DeepSeekChatModel chatModel;
 
     /**
-     * glm 模型直接调用
+     * deepseek 模型直接调用
      *
      * @return
      */
     @GetMapping("/call/chat")
-    public String callChat(@RequestParam String message, @RequestParam(defaultValue = "glm-4.6") String model) {
+    public String callChat(@RequestParam String message, @RequestParam(defaultValue = "deepseek-chat") String model) {
         ChatResponse response = chatModel.call(
                 new Prompt(
                         message,
-                        ZhiPuAiChatOptions.builder()
+                        DeepSeekChatOptions.builder()
                                 .model(model)
                                 .temperature(0.7)
                                 .build()
@@ -49,14 +47,14 @@ public class GLMModelController {
     }
 
     /**
-     * glm 模型流式调用
+     * deepseek 模型流式调用
      *
      * @return
      */
     @GetMapping(value = "/stream/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> streamChat(@RequestParam String message, @RequestParam(defaultValue = "glm-4.6") String model) {
+    public Flux<ServerSentEvent<String>> streamChat(@RequestParam String message, @RequestParam(defaultValue = "deepseek-chat") String model) {
         return chatModel.stream(
-                        new Prompt(message, ZhiPuAiChatOptions.builder().model(model).build())
+                        new Prompt(message, DeepSeekChatOptions.builder().model(model).build())
                 )
                 .map(chatResponse -> {
                     String text = chatResponse.getResults()
