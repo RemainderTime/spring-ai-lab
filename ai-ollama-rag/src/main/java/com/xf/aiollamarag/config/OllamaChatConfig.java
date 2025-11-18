@@ -3,7 +3,7 @@ package com.xf.aiollamarag.config;
 
 import org.springframework.ai.ollama.OllamaEmbeddingModel;
 import org.springframework.ai.ollama.api.OllamaApi;
-import org.springframework.ai.ollama.api.OllamaOptions;
+import org.springframework.ai.ollama.api.OllamaEmbeddingOptions;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
@@ -54,7 +54,7 @@ public class OllamaChatConfig {
         OllamaEmbeddingModel embeddingModel = OllamaEmbeddingModel
                 .builder()
                 .ollamaApi(ollamaApi)
-                .defaultOptions(OllamaOptions.builder().model("nomic-embed-text").build())
+                .defaultOptions(OllamaEmbeddingOptions.builder().model("nomic-embed-text").build())
                 .build();
         return SimpleVectorStore.builder(embeddingModel).build();
     }
@@ -72,7 +72,7 @@ public class OllamaChatConfig {
         OllamaEmbeddingModel embeddingModel = OllamaEmbeddingModel
                 .builder()
                 .ollamaApi(ollamaApi)
-                .defaultOptions(OllamaOptions.builder().model("nomic-embed-text").build())
+                .defaultOptions(OllamaEmbeddingOptions.builder().model("nomic-embed-text").build())
                 .build();
         return PgVectorStore.builder(jdbcTemplate, embeddingModel)
                 .vectorTableName("vector_store_ollama_deepseek")

@@ -15,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,7 @@ public class OllamaController {
 
     /**
      * ollama deepseek-r1:1.5b 直接应答
+     *
      * @param model
      * @param message
      * @return
@@ -50,7 +52,8 @@ public class OllamaController {
     }
 
     /**
-     *  ollama deepseek-r1:1.5b 流式应答
+     * ollama deepseek-r1:1.5b 流式应答
+     *
      * @param model
      * @param message
      * @return
@@ -66,6 +69,7 @@ public class OllamaController {
                 .map(chatResponse -> {
                     String text = chatResponse.getResults()
                             .stream()
+                            .filter(r -> r.getOutput().getText() != null)
                             .map(r -> r.getOutput().getText())
                             .findFirst()
                             .orElse("");
@@ -83,10 +87,9 @@ public class OllamaController {
     }
 
 
-
-
     /**
-     *  ollama deepseek-r1:1.5b 带rag的直接应答
+     * ollama deepseek-r1:1.5b 带rag的直接应答
+     *
      * @param model
      * @param ragTag
      * @param message
@@ -103,7 +106,8 @@ public class OllamaController {
     }
 
     /**
-     *  ollama deepseek-r1:1.5b 带rag的流式应答
+     * ollama deepseek-r1:1.5b 带rag的流式应答
+     *
      * @param model
      * @param ragTag
      * @param message
@@ -112,15 +116,15 @@ public class OllamaController {
     @RequestMapping(value = "/generate_stream_rag", method = RequestMethod.GET)
     public Flux<ServerSentEvent<String>> generateStreamRag(@RequestParam("model") String model, @RequestParam("ragTag") String ragTag, @RequestParam("message") String message) {
         return ollamaChatModel.stream(
-                new Prompt(
-                        this.createSystemMessage(message, ragTag),
-                        OllamaChatOptions.builder()
-                                .model(model)
-                                .build())
+                        new Prompt(
+                                this.createSystemMessage(message, ragTag),
+                                OllamaChatOptions.builder()
+                                        .model(model)
+                                        .build())
                 ).map(chatResponse -> {
                     String text = chatResponse.getResults()
                             .stream()
-                            .map(r -> r.getOutput().getText())
+                            .map(r -> r.getOutput().getText() != null ? r.getOutput().getText() : "")
                             .findFirst()
                             .orElse("");
 
