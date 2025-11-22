@@ -13,6 +13,7 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
@@ -114,6 +115,7 @@ public class OllamaController {
      * @return
      */
     @RequestMapping(value = "/generate_stream_rag", method = RequestMethod.GET)
+    @Transactional
     public Flux<ServerSentEvent<String>> generateStreamRag(@RequestParam("model") String model, @RequestParam("ragTag") String ragTag, @RequestParam("message") String message) {
         return ollamaChatModel.stream(
                         new Prompt(
@@ -140,7 +142,7 @@ public class OllamaController {
                 .doOnError(Throwable::printStackTrace);
     }
 
-    private Message createSystemMessage(String message, String ragTag) {
+    private ArrayList<Message> createSystemMessage(String message, String ragTag) {
         String SYSTEM_PROMPT = """
                 Use the information from the DOCUMENTS section to provide accurate answers but act as if you knew this information innately.
                 If unsure, simply state that you don't know.
@@ -161,8 +163,8 @@ public class OllamaController {
         Message ragMessage = new SystemPromptTemplate(SYSTEM_PROMPT).createMessage(Map.of("documents", documentsCollectors));
 
         ArrayList<Message> messages = new ArrayList<>();
-        messages.add(new UserMessage(message));
         messages.add(ragMessage);
-        return ragMessage;
+        messages.add(new UserMessage(message));
+        return messages;
     }
 }
