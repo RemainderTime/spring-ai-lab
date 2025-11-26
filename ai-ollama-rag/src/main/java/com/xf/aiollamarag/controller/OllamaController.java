@@ -142,6 +142,12 @@ public class OllamaController {
                 .doOnError(Throwable::printStackTrace);
     }
 
+    /**
+     * 获取向量知识库提示
+     * @param message
+     * @param ragTag
+     * @return
+     */
     private ArrayList<Message> createSystemMessage(String message, String ragTag) {
         String SYSTEM_PROMPT = """
                 Use the information from the DOCUMENTS section to provide accurate answers but act as if you knew this information innately.
