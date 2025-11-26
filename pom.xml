@@ -19,6 +19,7 @@
     <modules>
         <module>ai-ollama-rag</module>
         <module>ai-models-chat</module>
+        <module>ai-mcp-client</module>
     </modules>
 
     <properties>
