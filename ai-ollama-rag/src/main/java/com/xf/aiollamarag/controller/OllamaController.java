@@ -3,6 +3,7 @@ package com.xf.aiollamarag.controller;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.SystemPromptTemplate;
@@ -11,6 +12,7 @@ import org.springframework.ai.ollama.OllamaChatModel;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
+import org.springframework.ai.zhipuai.ZhiPuAiChatModel;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +40,9 @@ public class OllamaController {
     @Resource
     private PgVectorStore pgVectorStore;
 
+    @Resource
+    private ZhiPuAiChatModel zhiPuAiChatModel;
+
     /**
      * ollama deepseek-r1:1.5b 直接应答
      *
@@ -47,7 +52,9 @@ public class OllamaController {
      */
     @RequestMapping(value = "/generate", method = RequestMethod.GET)
     public ChatResponse generate(@RequestParam("model") String model, @RequestParam("message") String message) {
-        return ollamaChatModel.call(new Prompt(message, OllamaChatOptions.builder()
+        // 选择模型客户端
+        ChatModel chatModel = "glm-4.6".equals(model) ? zhiPuAiChatModel : ollamaChatModel;
+        return chatModel.call(new Prompt(message, OllamaChatOptions.builder()
                 .model(model)
                 .build()));
     }
@@ -64,7 +71,10 @@ public class OllamaController {
             @RequestParam String model,
             @RequestParam String message) {
 
-        return ollamaChatModel.stream(
+        // 选择模型客户端
+        ChatModel chatModel = "glm-4.6".equals(model) ? zhiPuAiChatModel : ollamaChatModel;
+
+        return chatModel.stream(
                         new Prompt(message, OllamaChatOptions.builder().model(model).build())
                 )
                 .map(chatResponse -> {
@@ -98,8 +108,9 @@ public class OllamaController {
      */
     @RequestMapping(value = "/generateCallRag", method = RequestMethod.GET, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ChatResponse generateCallRag(@RequestParam("model") String model, @RequestParam("ragTag") String ragTag, @RequestParam("message") String message) {
-
-        return ollamaChatModel.call(new Prompt(
+        // 选择模型客户端
+        ChatModel chatModel = "glm-4.6".equals(model) ? zhiPuAiChatModel : ollamaChatModel;
+        return chatModel.call(new Prompt(
                 this.createSystemMessage(message, ragTag),
                 OllamaChatOptions.builder()
                         .model(model)
@@ -117,7 +128,9 @@ public class OllamaController {
     @RequestMapping(value = "/generate_stream_rag", method = RequestMethod.GET)
     @Transactional
     public Flux<ServerSentEvent<String>> generateStreamRag(@RequestParam("model") String model, @RequestParam("ragTag") String ragTag, @RequestParam("message") String message) {
-        return ollamaChatModel.stream(
+        // 选择模型客户端
+        ChatModel chatModel = "glm-4.6".equals(model) ? zhiPuAiChatModel : ollamaChatModel;
+        return chatModel.stream(
                         new Prompt(
                                 this.createSystemMessage(message, ragTag),
                                 OllamaChatOptions.builder()
