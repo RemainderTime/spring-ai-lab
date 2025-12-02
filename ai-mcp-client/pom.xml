@@ -10,7 +10,7 @@
     </parent>
 
     <groupId>com.xf</groupId>
-    <artifactId>ai-mcp-client-x</artifactId>
+    <artifactId>ai-mcp-client</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>ai-mcp-client</name>
     <description>ai-mcp-client</description>
