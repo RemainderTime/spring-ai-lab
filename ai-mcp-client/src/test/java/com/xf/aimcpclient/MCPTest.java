@@ -43,7 +43,7 @@ public class MCPTest {
 	@Test
 	public void test_workflow() {
 		String userInput = "获取电脑配置";
-		userInput = "在 /Users/xiongfeng/Desktop 文件夹下，创建 电脑.txt  并写入内容我是大花猫";
+		userInput = "在 /Users/xiongfeng/Desktop 文件夹下，创建 电脑.txt  获取本机系统信息写入到文件中";
 
 		var chatClient = chatClientBuilder
 				.defaultToolCallbacks(tools)

@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: ai-mcp-server
+  ai:
+    mcp:
+      server:
+        name: ${spring.application.name}
+        version: 1.0.0
+  main:
+    banner-mode: off
+    web-application-type: none
+  cloud:
+    nacos:
+      config:
+        import-check:
+          enabled: false
+
+logging:
+  pattern:
+    console:
+  file:
+    name: ${spring.application.name}.log
+
+
+server:
+  port: 10004
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+      enabled: true
+
+
+
