@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
  * @author 海言
  * @date 2026/3/24
  * @time 16:39
- * @Description 配置基于内存的聊天记忆配置
+ * @Description 配置Memory记忆模块基于JVM内存配置
  */
 @Configuration
 public class AiConfig {
