@@ -2,6 +2,9 @@ package com.xf.aiagentchat.controller;
 
 
 import jakarta.annotation.Resource;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.deepseek.DeepSeekChatModel;
@@ -24,25 +27,40 @@ import org.springframework.web.bind.annotation.RestController;
 public class AgentChatController {
 
 
-    @Resource
-    private DeepSeekChatModel chatModel;
+    private final ChatClient chatClient;
+    private final ChatMemory chatMemory;
+
+    public AgentChatController(ChatClient.Builder builder, ChatMemory chatMemory) {
+        this.chatMemory = chatMemory;
+        this.chatClient = builder
+                .defaultToolNames("weatherFunction", "orderFunction")
+                .build();
+    }
 
 
     /**
-     * deepseek 模型直接输出并实现tool function 能力
+     * 智能体上下文记忆会话（JVM内存存储版）
      *
+     * @param chatId
+     * @param message
      * @return
      */
-    @GetMapping("/call/toolFunction/chat")
-    public String toolFunctionCallChat(@RequestParam String message, @RequestParam(defaultValue = "deepseek-chat") String model) {
-        ChatResponse response = chatModel.call(
-                new Prompt(
-                        message,
-                        DeepSeekChatOptions.builder()
-                                .model(model)
-                                .toolNames("weatherFunction", "orderFunction") //指定天气/订单 tool function
+    @GetMapping("/chat/memory")
+    public String chat(
+            @RequestParam String chatId,  // 模拟不同用户的独立记忆
+            @RequestParam String message) {
+
+        return chatClient.prompt()
+                .user(message)
+                // 👇 挂载记忆拦截器：传入存储引擎、当前会话 ID、滑动窗口大小
+                .advisors(
+                        MessageChatMemoryAdvisor.
+                                builder(this.chatMemory)
+                                .conversationId(chatId)
+                                .order(10)
                                 .build()
-                ));
-        return response.getResult().getOutput().getText();
+                )
+                .call()
+                .content();
     }
 }
