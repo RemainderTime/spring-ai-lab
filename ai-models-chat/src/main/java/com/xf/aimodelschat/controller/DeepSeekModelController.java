@@ -40,7 +40,6 @@ public class DeepSeekModelController {
                         message,
                         DeepSeekChatOptions.builder()
                                 .model(model)
-                                .temperature(0.7)
                                 .build()
                 ));
         return response.getResult().getOutput().getText();
@@ -74,5 +73,23 @@ public class DeepSeekModelController {
                                 .build()
                 ))
                 .doOnError(Throwable::printStackTrace);
+    }
+
+    /**
+     * deepseek 模型直接输出并实现tool function 能力
+     *
+     * @return
+     */
+    @GetMapping("/call/toolFunction/chat")
+    public String toolFunctionCallChat(@RequestParam String message, @RequestParam(defaultValue = "deepseek-chat") String model) {
+        ChatResponse response = chatModel.call(
+                new Prompt(
+                        message,
+                        DeepSeekChatOptions.builder()
+                                .model(model)
+                                .toolNames("weatherFunction") //指定天气 tool function
+                                .build()
+                ));
+        return response.getResult().getOutput().getText();
     }
 }
