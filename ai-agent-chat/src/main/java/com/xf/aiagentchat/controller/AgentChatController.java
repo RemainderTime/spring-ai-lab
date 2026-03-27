@@ -26,10 +26,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/ai/agent")
 public class AgentChatController {
 
-
     private final ChatClient chatClient;
     private final ChatMemory chatMemory;
 
+    // 构造函数注入 tool function功能触手
     public AgentChatController(ChatClient.Builder builder, ChatMemory chatMemory) {
         this.chatMemory = chatMemory;
         this.chatClient = builder
