@@ -1,6 +1,8 @@
 package com.xf.aiagentchat.config;
 
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xf.aiagentchat.memory.RedisChatMemory;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
@@ -57,15 +59,27 @@ public class AiConfig {
     }
 
     @Bean
-    public RedisTemplate<String, List<Message>> aiMessageRedisTemplate(RedisConnectionFactory connectionFactory) {
+    public RedisTemplate<String, List<Message>> aiMessageRedisTemplate(
+            RedisConnectionFactory connectionFactory,
+            ObjectMapper springBootObjectMapper) { // 👇 核心：让 Spring 把调教好的满血版 ObjectMapper 注入进来！
+
         RedisTemplate<String, List<Message>> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
-        // 1. Key 依然用普通的 String 序列化
+        // 1. Key 依然用 String
         template.setKeySerializer(new StringRedisSerializer());
 
-        // 2. 【核心修复点】Value 改用带类名信息的 JSON 序列化器！
-        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+        // 2. 【防污染机制】深度克隆一个 ObjectMapper。
+        // 因为我们要修改它，如果不 copy，会把整个微服务其他接口的 JSON 格式全搞乱！
+        ObjectMapper aiMapper = springBootObjectMapper.copy();
+
+        // 3. 开启多态类型记录（告诉 Jackson 在 JSON 里写入 @class 字段，标明是 UserMessage 还是 AssistantMessage）
+        aiMapper.activateDefaultTyping(
+                aiMapper.getPolymorphicTypeValidator()
+        );
+
+        // 4. 将满血版 Mapper 交给 Redis 序列化器
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer(aiMapper));
 
         template.afterPropertiesSet();
         return template;
