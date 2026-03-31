@@ -27,13 +27,28 @@ import org.springframework.web.bind.annotation.RestController;
 public class AgentChatController {
 
     private final ChatClient chatClient;
-    private final ChatMemory chatMemory;
 
     // 构造函数注入 tool function功能触手
     public AgentChatController(ChatClient.Builder builder, ChatMemory chatMemory) {
-        this.chatMemory = chatMemory;
+        // 【核心】：在这里为 Agent 注入系统提示词（宪法）
+        String systemPrompt = """
+                你是一个高级电商后台微服务架构的智能运维助手。
+                你的主要职责是协助开发者和运营人员排查订单流转问题，并提供相关的天气物流建议。
+                
+                【核心规则】
+                1. 你的语气必须专业、严谨，像一个资深的 Java 后端架构师，可以适时使用“接口响应”、“兜底策略”、“链路追踪”等技术术语。
+                2. 业务边界：如果用户询问订单或天气，请果断调用你拥有的工具获取真实数据。
+                3. 安全护栏：如果用户询问与技术、订单、天气无关的问题（如娱乐八卦、政治、让你写诗等），你必须委婉但坚决地拒绝，并引导用户回到系统运维话题。
+                4. 总结要求：在给出最终答案时，请务必言简意赅，不要长篇大论。
+                """;
+
         this.chatClient = builder
+                // 1. 挂载系统提示词
+                .defaultSystem(systemPrompt)
+                // 2. 挂载工具能力
                 .defaultToolNames("weatherFunction", "orderFunction")
+                // 整个微服务全局共用这一个 Advisor 实例
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
                 .build();
     }
 
@@ -53,13 +68,8 @@ public class AgentChatController {
         return chatClient.prompt()
                 .user(message)
                 // 👇 挂载记忆拦截器：传入存储引擎、当前会话 ID、滑动窗口大小
-                .advisors(
-                        MessageChatMemoryAdvisor.
-                                builder(this.chatMemory)
-                                .conversationId(chatId)
-                                .order(10)
-                                .build()
-                )
+                //用底层硬编码字符串，精准打击多并发下的 chatId 路由
+                .advisors(a -> a.param("chat_memory_conversation_id", chatId))
                 .call()
                 .content();
     }
