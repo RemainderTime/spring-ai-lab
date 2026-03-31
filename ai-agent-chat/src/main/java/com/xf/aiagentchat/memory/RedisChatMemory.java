@@ -1,15 +1,19 @@
 package com.xf.aiagentchat.memory;
 
-
+import com.alibaba.fastjson2.JSON;
+import lombok.Data;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * RedisChatMomery
@@ -20,65 +24,99 @@ import java.util.concurrent.TimeUnit;
  * @Description redis分布式记忆会话操作类
  */
 
+@Slf4j
 public class RedisChatMemory implements ChatMemory {
 
-    private static RedisTemplate<String, List<Message>> redisTemplate = new RedisTemplate<>();
-    // memory 最大存储数
-    private static int MAX_MEMORY_SIZE = 1000;
-    // memory redis key 前缀
-    private static String REDIS_KEY_PREFIX = "ai:agent:memory:userId:";
-    // memory 过期时间
-    private long expireDays;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final int maxMessages;
+    private final long expireDays;
+    private static final String KEY_PREFIX = "ai:agentChat:memory:";
 
+    // 【核心架构设计】：我们自己定义的纯净数据结构，没有任何框架包袱！
+    @Data
+    public static class MessageDto {
+        private String type;
+        private String content;
+        public MessageDto() {
+        } // 必须有无参构造
+        public MessageDto(String type, String content) {
+            this.type = type;
+            this.content = content;
+        }
+    }
 
-    public RedisChatMemory(RedisTemplate<String, List<Message>> redisTemplate, int maxMessages, long expireDays) {
-        RedisChatMemory.redisTemplate = redisTemplate;
-        MAX_MEMORY_SIZE = maxMessages;
+    public RedisChatMemory(StringRedisTemplate stringRedisTemplate, int maxMessages, long expireDays) {
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.maxMessages = maxMessages;
         this.expireDays = expireDays;
     }
 
-    /**
-     * 添加memory
-     *
-     * @param conversationId
-     * @param messages
-     */
     @Override
-    public void add(String conversationId, List<Message> messages) {
-        List<Message> memory = this.get(conversationId);
-        //追加memory
-        memory.addAll(messages);
-        // 如果超过最大存储数，则截取最新的 MAX_MEMORY_SIZE 条数据
-        if (memory.size() > MAX_MEMORY_SIZE) {
-            memory = memory.subList(memory.size() - MAX_MEMORY_SIZE, memory.size());
+    public void add(@NonNull String conversationId,@NonNull List<Message> messages) {
+        String key = KEY_PREFIX + conversationId;
+        List<Message> history = get(conversationId);
+        List<Message> mutableHistory = new ArrayList<>();
+        if (!history.isEmpty()) {
+            mutableHistory.addAll(history);
         }
-        // 保存到 Redis 中
-        redisTemplate.opsForValue().set(REDIS_KEY_PREFIX + conversationId, memory, expireDays, TimeUnit.DAYS);
+        if (!messages.isEmpty()) {
+            mutableHistory.addAll(messages);
+        }
+        if (mutableHistory.size() > maxMessages) {
+            mutableHistory = mutableHistory.subList(mutableHistory.size() - maxMessages, mutableHistory.size());
+        }
+
+        // 【降维打击 - 存入】：把复杂的 Message 剥离成我们自己干净的 DTO
+        List<MessageDto> dtos = mutableHistory.stream()
+                .map(m -> new MessageDto(
+                        m.getMessageType().getValue(),
+                        m.getText() != null ? m.getText() : ""
+                ))
+                .collect(Collectors.toList());
+
+        // 像存普通业务数据一样存进去，极其稳健
+        stringRedisTemplate.opsForValue().set(key, JSON.toJSONString(dtos), expireDays, TimeUnit.DAYS);
     }
 
-    /**
-     * 获取memory
-     *
-     * @param conversationId
-     * @return
-     */
     @Override
-    public List<Message> get(String conversationId) {
-        List<Message> messages = redisTemplate.opsForValue().get(REDIS_KEY_PREFIX + conversationId);
-        if (messages == null) {
+    public List<Message> get(@NonNull String conversationId) {
+        String key = KEY_PREFIX + conversationId;
+        String jsonStr = stringRedisTemplate.opsForValue().get(key);
+
+        if (jsonStr == null || jsonStr.isEmpty()) {
             return new ArrayList<>();
         }
-        //按需返回最大存储数
-        return messages.subList(Math.max(0, messages.size() - MAX_MEMORY_SIZE), messages.size());
+
+        try {
+            // 【降维打击 - 取出】：先解析成我们的 DTO
+            List<MessageDto> dtos = JSON.parseArray(jsonStr, MessageDto.class);
+
+            // 然后手动 new 出大模型需要的标准对象
+            List<Message> messages = dtos.stream().map(dto -> {
+                String type = dto.getType();
+                String content = dto.getContent();
+                if ("user".equalsIgnoreCase(type)) {
+                    return new UserMessage(content);
+                } else if ("assistant".equalsIgnoreCase(type)) {
+                    return new AssistantMessage(content);
+                } else if ("system".equalsIgnoreCase(type)) {
+                    return new SystemMessage(content);
+                }
+                return new UserMessage(content); // 兜底
+            }).collect(Collectors.toList());
+
+            int fromIndex = Math.max(0, messages.size() - 500);
+            return new ArrayList<>(messages.subList(fromIndex, messages.size()));
+
+        } catch (Exception e) {
+            log.warn("解析缓存异常，已清空脏数据: {}", e.getMessage());
+            stringRedisTemplate.delete(key);
+            return new ArrayList<>();
+        }
     }
 
-    /**
-     * 清空memory
-     *
-     * @param conversationId
-     */
     @Override
-    public void clear(String conversationId) {
-        redisTemplate.delete(REDIS_KEY_PREFIX + conversationId);
+    public void clear(@NonNull String conversationId) {
+        stringRedisTemplate.delete(KEY_PREFIX + conversationId);
     }
 }
