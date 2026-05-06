@@ -1,6 +1,6 @@
 package com.xf.rag.config;
 
-import com.xf.aiagentchat.memory.RedisChatMemory;
+import com.xf.rag.memory.RedisChatMemory;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
