@@ -22,6 +22,7 @@
         <module>ai-mcp-client</module>
         <module>ai-mcp-server</module>
         <module>ai-agent-chat</module>
+        <module>ai-agent-rag</module>
     </modules>
 
     <properties>
@@ -29,6 +30,7 @@
         <spring-ai-version>1.1.4</spring-ai-version>
         <spring-cloud.version>2023.0.6</spring-cloud.version>
         <spring-cloud-alibaba.version>2023.0.3.4</spring-cloud-alibaba.version>
+        <fastjson2.version>2.0.47</fastjson2.version>
     </properties>
 
     <dependencyManagement>
@@ -56,6 +58,12 @@
                 <version>${spring-cloud-alibaba.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.fastjson2</groupId>
+                <artifactId>fastjson2</artifactId>
+                <version>${fastjson2.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
