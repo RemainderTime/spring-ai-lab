@@ -17,6 +17,7 @@
 
     <properties>
         <java.version>17</java.version>
+        <spring-ai-alibaba.version>1.1.2.2</spring-ai-alibaba.version>
     </properties>
     <dependencies>
         <!-- 集成deepseek公司依赖 用于DeepSeek 模型-->
@@ -30,10 +31,23 @@
             <artifactId>fastjson2</artifactId>
         </dependency>
 
-        <!-- 集成ElasticSearch依赖 用于ElasticSearch 向量存储-->
+        <!-- 用于ai rag 解析上传的数据文件-->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-tika-document-reader</artifactId>
+        </dependency>
+
+        <!-- 集成ElasticSearch依赖 作为 向量数据库 向量存储-->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-starter-vector-store-elasticsearch</artifactId>
+        </dependency>
+
+        <!-- 集成阿里DashScope依赖 作为Embedding 向量化 模型-->
+        <dependency>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
+            <version>${spring-ai-alibaba.version}</version>
         </dependency>
 
     </dependencies>
