@@ -3,7 +3,7 @@ package com.xf.rag.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.reader.TextReader;
+import org.springframework.ai.reader.tika.TikaDocumentReader;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.io.Resource;
@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -27,11 +26,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/agentRag")
 @Slf4j
-public class AgentRagController {
+public class AgentRagFileController {
 
     private final VectorStore vectorStore;
 
-    public AgentRagController(VectorStore vectorStore) {
+    public AgentRagFileController(VectorStore vectorStore) {
         this.vectorStore = vectorStore;
     }
 
@@ -52,18 +51,20 @@ public class AgentRagController {
         try {
             // 1. 文件加载 (Load)：巧妙利用 Spring 的 Resource 接口，避免在本地磁盘生成临时文件
             Resource resource = file.getResource();
-            TextReader textReader = new TextReader(resource);
-
-            // 注入核心元数据 (Metadata)。在后续的复杂查询中，我们可以用 metadata 来做精确的 SQL like 过滤
-            textReader.getCustomMetadata().put("source_filename", filename);
-            textReader.getCustomMetadata().put("upload_timestamp", System.currentTimeMillis());
-
+            // 🚨 核心修改：把 TextReader 换成 TikaDocumentReader
+            // Tika 会自动嗅探文件类型（Word, PDF, Excel等），并智能剥离排版，提取出纯净的文本！
+            TikaDocumentReader documentReader = new TikaDocumentReader(resource);
             // 将文件内容读取为 Spring AI 的标准 Document 对象
-            List<Document> rawDocs = textReader.get();
+            List<Document> rawDocs = documentReader.get();
+            // 手动追加我们自定义的元数据（因为 Tika 默认会加很多元数据，我们可以再补充一点）
+            for (Document doc : rawDocs) {
+                doc.getMetadata().put("source_filename", filename);
+                doc.getMetadata().put("upload_timestamp", System.currentTimeMillis());
+            }
             log.info("文件读取完成，准备执行语义切片...");
 
             // 2. 文本切片 (Split)：维持黄金比例
-            TokenTextSplitter splitter = new TokenTextSplitter(800, 800, 150, 10000, true, Collections.emptyList());
+            TokenTextSplitter splitter = new TokenTextSplitter();
             List<Document> chunkedDocs = splitter.apply(rawDocs);
             log.info("文件切片完成，共切分为 {} 个数据块，准备调用大模型向量化并存入 ES...", chunkedDocs.size());
 
