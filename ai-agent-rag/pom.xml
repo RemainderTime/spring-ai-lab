@@ -65,6 +65,12 @@
             <version>${spring-ai-alibaba.version}</version>
         </dependency>
 
+        <!-- 向量拦截器扩展依赖 -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-advisors-vector-store</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

@@ -47,7 +47,7 @@ public class AgentChatController {
                 .defaultSystem(systemPrompt)
                 // 2. 挂载工具能力
                 .defaultToolNames("weatherFunction", "orderFunction")
-                // 整个微服务全局共用这一个 Advisor 实例
+                // 每次问答前，自动把上一轮的会话塞给大模型
                 .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
                 .build();
     }
