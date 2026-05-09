@@ -66,6 +66,8 @@ public class AgentRagChatController {
                         //核心逻辑2：内存拦截器 (RAG 核心)。每次问答前，自动把上一轮的会话塞给大模型
                         MessageChatMemoryAdvisor.builder(chatMemory).build()
                 )
+                // 注入工具能力
+                .defaultToolNames("weatherFunction", "orderFunction")
                 .build();
     }
 
