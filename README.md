@@ -39,6 +39,11 @@
 - **核心技术**：`MCP Client`、`Dynamic Tool Discovery`。
 - **📖 教程博客**：[点击这里填写您的博客教程地址](#)
 
+### 6. `ai-agent-rag` (Agent 智能体与 RAG 综合应用)
+- **简介**：结合了 RAG（检索增强生成）与 AI Agent 的综合落地示例。借助外部大语言模型（如 DeepSeek）、Embedding 模型（如 DashScope）与 Elasticsearch 向量数据库，不仅实现了私有知识的精准问答，还能融合智能体的工具调用能力处理复杂业务场景。
+- **核心技术**：`Agent`、`Elasticsearch Vector Store`、`DeepSeek/DashScope`。
+- **📖 教程博客**：[点击这里填写您的博客教程地址](#)
+
 ---
 
 ## 🛠️ 环境准备
