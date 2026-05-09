@@ -3,15 +3,11 @@ package com.xf.rag.controller;
 
 import com.alibaba.cloud.ai.advisor.DocumentRetrievalAdvisor;
 import com.alibaba.cloud.ai.dashscope.rerank.DashScopeRerankModel;
-import com.alibaba.cloud.ai.dashscope.rerank.DashScopeRerankOptions;
 import com.alibaba.cloud.ai.document.DocumentWithScore;
-import com.alibaba.cloud.ai.model.RerankOptions;
 import com.alibaba.cloud.ai.model.RerankRequest;
-import com.xf.rag.memory.RedisChatMemory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.rag.retrieval.search.DocumentRetriever;
