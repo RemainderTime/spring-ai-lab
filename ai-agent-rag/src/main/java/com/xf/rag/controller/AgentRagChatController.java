@@ -1,18 +1,28 @@
 package com.xf.rag.controller;
 
 
+import com.alibaba.cloud.ai.advisor.DocumentRetrievalAdvisor;
+import com.alibaba.cloud.ai.dashscope.rerank.DashScopeRerankModel;
+import com.alibaba.cloud.ai.dashscope.rerank.DashScopeRerankOptions;
+import com.alibaba.cloud.ai.document.DocumentWithScore;
+import com.alibaba.cloud.ai.model.RerankOptions;
+import com.alibaba.cloud.ai.model.RerankRequest;
 import com.xf.rag.memory.RedisChatMemory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.rag.retrieval.search.DocumentRetriever;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * AgentRagChatController
@@ -31,13 +41,32 @@ public class AgentRagChatController {
 
 
     // 构造器注入 ChatClient.Builder 和 VectorStore
-    public AgentRagChatController(ChatClient.Builder chatClientBuilder, VectorStore vectorStore, ChatMemory chatMemory) {
+    public AgentRagChatController(ChatClient.Builder chatClientBuilder,
+                                  VectorStore vectorStore,
+                                  ChatMemory chatMemory,
+                                  DashScopeRerankModel rerankModel) {
+
+        // 🏆 架构核心：自研“双重漏斗”检索器
+        DocumentRetriever dualRetriever = query -> {
+            // 漏斗第一级：ES 粗排 (捞取 Top 20)
+            List<Document> rawDocs = vectorStore.similaritySearch(
+                    SearchRequest.builder().query(query.text()).topK(20).build()
+            );
+            log.info("ES 粗排完毕，捞出 {} 条切片，准备进入精排...", rawDocs.size());
+            // 漏斗第二级：Rerank 精排 (浓缩至 Top 3)
+            // 调用阿里 Rerank 模型进行交叉打分重排
+            RerankRequest rerankRequest = new RerankRequest(query.text(), rawDocs);
+            List<DocumentWithScore> resultScore = rerankModel.call(rerankRequest).getResults();
+            List<Document> results = resultScore.stream().map(DocumentWithScore::getOutput).toList();
+            log.info("精排完毕，已锁定最精准的 3 条切片！");
+            return results;
+        };
         // 装配 ChatClient
         this.chatClient = chatClientBuilder
                 .defaultSystem("你是一个公司项目技术方案助手。请根据提供的知识库内容，准确、专业地回答员工的问题。如果在知识库中找不到答案，请诚实地说明。")
                 .defaultAdvisors(
-                        //核心逻辑1：向量检索拦截器 (RAG 核心)。每次问答前，自动去 ES 搜最近的 4 块文档切片，塞给大模型
-                        QuestionAnswerAdvisor.builder(vectorStore).searchRequest(SearchRequest.builder().topK(4).build()).build(),
+                        //核心逻辑1：注入精排后的 3 块文档切片，塞给大模型
+                        new DocumentRetrievalAdvisor(dualRetriever),
                         //核心逻辑2：内存拦截器 (RAG 核心)。每次问答前，自动把上一轮的会话塞给大模型
                         MessageChatMemoryAdvisor.builder(chatMemory).build()
                 )
