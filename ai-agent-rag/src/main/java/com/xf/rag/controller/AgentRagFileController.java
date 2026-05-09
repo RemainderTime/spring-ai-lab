@@ -36,7 +36,7 @@ public class AgentRagFileController {
 
     /**
      * RAG 知识库进货接口：接收文件上传，执行切片并向量化入库
-     * 适用于：.txt, .md 等纯文本文件
+     *
      */
     @PostMapping("/upload")
     public String uploadKnowledgeFile(@RequestParam("file") MultipartFile file) {
